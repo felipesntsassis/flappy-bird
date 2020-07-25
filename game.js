@@ -9,31 +9,7 @@ sprites.src = './sprites.png';
 const canvas = document.querySelector('canvas');
 const context = canvas.getContext('2d');
 
-//[Floor]
-const floor = {
-    spriteX: 0,
-    spriteY: 610,
-    width: 224,
-    height: 112,
-    x: 0,
-    y: canvas.height - 112,
-    draw() {
-        context.drawImage(
-            sprites,
-            floor.spriteX, floor.spriteY, // Sprite X, Sprite Y
-            floor.width, floor.height, // tamanho do recorte na sprite
-            floor.x, floor.y,
-            floor.width, floor.height
-        );
-        context.drawImage(
-            sprites,
-            floor.spriteX, floor.spriteY, // Sprite X, Sprite Y
-            floor.width, floor.height, // tamanho do recorte na sprite
-            (floor.x + floor.width), floor.y,
-            floor.width, floor.height
-        );
-    }
-}
+let frames = 0;
 
 // [Background]
 const background = {
@@ -85,7 +61,6 @@ const getReadyMessage = {
     },
     update() {
         flappyBird.speed += flappyBird.gravity;
-        console.log(flappyBird.speed);
         flappyBird.y += flappyBird.speed;
     }
 };
@@ -104,15 +79,16 @@ const Scenes = {
         },
         draw() {
             background.draw();
-            floor.draw();
+            globals.floor.draw();
             getReadyMessage.draw();
             globals.flappyBird.draw();
         },
         initialize() {
+            globals.floor = makeFloor();
             globals.flappyBird = makeFlappyBird();
         },
         update() {
- 
+            globals.floor.update();
         },
     },
 
@@ -123,11 +99,13 @@ Scenes.GAME = {
     },
     draw() {
         background.draw();
-        floor.draw();
+        globals.floor.draw();
         globals.flappyBird.draw();
     },
     update() {
+        globals.floor.update();
         globals.flappyBird.update();
+        
     }
 }
 
@@ -154,7 +132,43 @@ function hasColision(flappyBird, floor) {
 function loop() {
     activeScene.draw();
     activeScene.update();
+    frames ++;
     requestAnimationFrame(loop);
+}
+
+function makeFloor() {
+    const floor = {
+        spriteX: 0,
+        spriteY: 610,
+        width: 224,
+        height: 112,
+        x: 0,
+        y: canvas.height - 112,
+        draw() {
+            context.drawImage(
+                sprites,
+                floor.spriteX, floor.spriteY, // Sprite X, Sprite Y
+                floor.width, floor.height, // tamanho do recorte na sprite
+                floor.x, floor.y,
+                floor.width, floor.height
+            );
+            context.drawImage(
+                sprites,
+                floor.spriteX, floor.spriteY, // Sprite X, Sprite Y
+                floor.width, floor.height, // tamanho do recorte na sprite
+                (floor.x + floor.width), floor.y,
+                floor.width, floor.height
+            );
+        },
+        update() {
+            const floorMovement = 1;
+            const loopAt = floor.width / 2;
+            const movimentation = floor.x - floorMovement;
+            floor.x = movimentation % loopAt;
+        }
+    }
+
+    return floor;
 }
 
 function makeFlappyBird() {
@@ -165,27 +179,33 @@ function makeFlappyBird() {
         height: 24,
         x: 10,
         y: 50,
+        moviments: [
+            { spriteX: 0, spriteY: 0 }, // Asa para cima
+            { spriteX: 0, spriteY: 26 }, // Asa para o meio
+            { spriteX: 0, spriteY: 52 }, // Asa para baixo
+            { spriteX: 0, spriteY: 26 } // Asa para o meio
+        ],
+        currentFrame: 0,
         gravity: 0.25,
         jump: 4.6,
         speed: 0,
         draw() {
+            flappyBird.updateFrame();
+            const { spriteX, spriteY } = flappyBird.moviments[flappyBird.currentFrame];
+
             context.drawImage(
                 sprites,
-                flappyBird.spriteX, flappyBird.spriteY, // Sprite X, Sprite Y
+                spriteX, spriteY, // Sprite X, Sprite Y
                 flappyBird.width, flappyBird.height, // tamanho do recorte na sprite
                 flappyBird.x, flappyBird.y,
                 flappyBird.width, flappyBird.height
             );
         },
         toJump() {
-            console.log('I must jump!');
-            console.log('[before]', flappyBird.speed);
             flappyBird.speed = - flappyBird.jump;
-            console.log('[after]', flappyBird.speed);
         },
         update() {
-            if (hasColision(flappyBird, floor)) {
-                console.log('has colision');
+            if (hasColision(flappyBird, globals.floor)) {
                 sound_Hit.play();
                 setTimeout(() => {
                     changeScene(Scenes.START);
@@ -195,6 +215,17 @@ function makeFlappyBird() {
 
             flappyBird.speed += flappyBird.gravity;
             flappyBird.y += flappyBird.speed;
+        },
+        updateFrame() {
+            const framesInterval = 10;
+            const hasIntervalPassed = frames % framesInterval === 0;
+
+            if (hasIntervalPassed) {
+                const incrementBase = 1;
+                const increment = incrementBase + flappyBird.currentFrame;
+                const repeatBase = flappyBird.moviments.length;
+                flappyBird.currentFrame = increment %  repeatBase;
+            }
         }
     };
 
