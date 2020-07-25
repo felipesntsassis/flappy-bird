@@ -86,13 +86,79 @@ const flappyBird = {
     }
 };
 
-function loop() {
-    background.draw();
-    floor.draw();
-    flappyBird.update();
-    flappyBird.draw();
+// [Start Screen]
+const getReadyMessage = {
+    spriteX: 134,
+    spriteY: 0,
+    width: 174,
+    height: 152,
+    x: (canvas.width / 2) - 174 / 2,
+    y: 50,
+    draw() {
+        context.drawImage(
+            sprites,
+            getReadyMessage.spriteX, getReadyMessage.spriteY,
+            getReadyMessage.width, getReadyMessage.height,
+            getReadyMessage.x, getReadyMessage.y,
+            getReadyMessage.width, getReadyMessage.height
+        );
+    },
+    update() {
+        flappyBird.speed += flappyBird.gravity;
+        console.log(flappyBird.speed);
+        flappyBird.y += flappyBird.speed;
+    }
+};
 
+// 
+// [Telas]
+// 
+let activeScene = {};
+
+
+const Scenes = {
+    START: {
+        click() {
+            changeScene(Scenes.GAME);
+        },
+        draw() {
+            background.draw();
+            floor.draw();
+            getReadyMessage.draw();
+            flappyBird.draw();
+        },
+        update() {
+ 
+        },
+    },
+
+};
+Scenes.GAME = {
+    draw() {
+        background.draw();
+        floor.draw();
+        flappyBird.draw();
+    },
+    update() {
+        flappyBird.update();
+    }
+}
+
+function changeScene(nextScene) {
+    activeScene = nextScene
+}
+
+function loop() {
+    activeScene.draw();
+    activeScene.update();
     requestAnimationFrame(loop);
 }
 
+window.addEventListener('click', function () {
+    if (activeScene.click) {
+        activeScene.click();
+    }
+});
+
+changeScene(Scenes.START);
 loop();
