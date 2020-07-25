@@ -1,5 +1,8 @@
 console.log('Flappy Bird - Felipe Assis');
 
+const sound_Hit = new Audio();
+sound_Hit.src = './effects/hit.wav';
+
 const sprites = new Image();
 sprites.src = './sprites.png';
 
@@ -61,30 +64,7 @@ const background = {
 };
 
 // [Actor]
-const flappyBird = {
-    spriteX: 0,
-    spriteY: 0,
-    width: 33,
-    height: 24,
-    x: 10,
-    y: 50,
-    gravity: 0.25,
-    speed: 0,
-    draw() {
-        context.drawImage(
-            sprites,
-            flappyBird.spriteX, flappyBird.spriteY, // Sprite X, Sprite Y
-            flappyBird.width, flappyBird.height, // tamanho do recorte na sprite
-            flappyBird.x, flappyBird.y,
-            flappyBird.width, flappyBird.height
-        );
-    },
-    update() {
-        flappyBird.speed += flappyBird.gravity;
-        console.log(flappyBird.speed);
-        flappyBird.y += flappyBird.speed;
-    }
-};
+
 
 // [Start Screen]
 const getReadyMessage = {
@@ -114,6 +94,7 @@ const getReadyMessage = {
 // [Telas]
 // 
 let activeScene = {};
+let globals = {};
 
 
 const Scenes = {
@@ -125,7 +106,10 @@ const Scenes = {
             background.draw();
             floor.draw();
             getReadyMessage.draw();
-            flappyBird.draw();
+            globals.flappyBird.draw();
+        },
+        initialize() {
+            globals.flappyBird = makeFlappyBird();
         },
         update() {
  
@@ -134,24 +118,87 @@ const Scenes = {
 
 };
 Scenes.GAME = {
+    click() {
+        globals.flappyBird.toJump();
+    },
     draw() {
         background.draw();
         floor.draw();
-        flappyBird.draw();
+        globals.flappyBird.draw();
     },
     update() {
-        flappyBird.update();
+        globals.flappyBird.update();
     }
 }
 
 function changeScene(nextScene) {
-    activeScene = nextScene
+    activeScene = nextScene;
+
+    if (activeScene.initialize) {
+        activeScene.initialize();
+    }
+}
+
+function hasColision(flappyBird, floor) {
+    const flappyBirdY = flappyBird.y + flappyBird.height;
+    const floorY = floor.y;
+
+
+    if (flappyBirdY >= floorY) {
+        return true;
+    }
+
+    return false;
 }
 
 function loop() {
     activeScene.draw();
     activeScene.update();
     requestAnimationFrame(loop);
+}
+
+function makeFlappyBird() {
+    const flappyBird = {
+        spriteX: 0,
+        spriteY: 0,
+        width: 33,
+        height: 24,
+        x: 10,
+        y: 50,
+        gravity: 0.25,
+        jump: 4.6,
+        speed: 0,
+        draw() {
+            context.drawImage(
+                sprites,
+                flappyBird.spriteX, flappyBird.spriteY, // Sprite X, Sprite Y
+                flappyBird.width, flappyBird.height, // tamanho do recorte na sprite
+                flappyBird.x, flappyBird.y,
+                flappyBird.width, flappyBird.height
+            );
+        },
+        toJump() {
+            console.log('I must jump!');
+            console.log('[before]', flappyBird.speed);
+            flappyBird.speed = - flappyBird.jump;
+            console.log('[after]', flappyBird.speed);
+        },
+        update() {
+            if (hasColision(flappyBird, floor)) {
+                console.log('has colision');
+                sound_Hit.play();
+                setTimeout(() => {
+                    changeScene(Scenes.START);
+                }, 500)
+                return;
+            }
+
+            flappyBird.speed += flappyBird.gravity;
+            flappyBird.y += flappyBird.speed;
+        }
+    };
+
+    return flappyBird;
 }
 
 window.addEventListener('click', function () {
