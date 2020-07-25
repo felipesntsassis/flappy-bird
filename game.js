@@ -79,12 +79,14 @@ const Scenes = {
         },
         draw() {
             background.draw();
+            globals.flappyBird.draw();
+            
             globals.floor.draw();
             getReadyMessage.draw();
-            globals.flappyBird.draw();
         },
         initialize() {
             globals.floor = makeFloor();
+            globals.pipes = makePipes();
             globals.flappyBird = makeFlappyBird();
         },
         update() {
@@ -99,10 +101,12 @@ Scenes.GAME = {
     },
     draw() {
         background.draw();
+        globals.pipes.draw();
         globals.floor.draw();
         globals.flappyBird.draw();
     },
     update() {
+        globals.pipes.update();
         globals.floor.update();
         globals.flappyBird.update();
         
@@ -230,6 +234,101 @@ function makeFlappyBird() {
     };
 
     return flappyBird;
+}
+
+function makePipes() {
+    const pipes = {
+        width: 52,
+        height: 400,
+        floor: {
+            spriteX: 0,
+            spriteY: 169
+        },
+        sky: {
+            spriteX: 52,
+            spriteY: 169
+        },
+        space: 80,
+        pairs: [],
+        draw() {
+            pipes.pairs.forEach(function (pair) {
+                const yRandom = pair.y;
+                const spacingBetweenPipes = 90;
+                
+                // [Cano do Céu]
+                const skyPipeX = pair.x;
+                const skyPipeY = yRandom;
+                context.drawImage(
+                    sprites,
+                    pipes.sky.spriteX, pipes.sky.spriteY, // Sprite X, Sprite Y
+                    pipes.width, pipes.height, // tamanho do recorte na sprite
+                    skyPipeX, skyPipeY,
+                    pipes.width, pipes.height
+                );
+    
+                // [Cano do chão]
+                const floorPipeX = pair.x;
+                const floorPipeY = pipes.height + spacingBetweenPipes + yRandom;
+                context.drawImage(
+                    sprites,
+                    pipes.floor.spriteX, pipes.floor.spriteY, // Sprite X, Sprite Y
+                    pipes.width, pipes.height, // tamanho do recorte na sprite
+                    floorPipeX, floorPipeY,
+                    pipes.width, pipes.height
+                );
+
+                pair.skyPipe = {
+                    x: skyPipeX,
+                    y: pipes.height + skyPipeY
+                };
+                pair.floorPipe = {
+                    x: floorPipeX,
+                    y: floorPipeY
+                }
+            });
+        },
+        hasColisionWithFlappyBird(pair) {
+            const flappyBirdHead = globals.flappyBird.y;
+            const flappyBirdFoots = globals.flappyBird.y + globals.flappyBird.height;
+
+            if (globals.flappyBird.x >= pair.x) {
+                console.log('Flappy Bird invadiu a área dos canos');
+                if (flappyBirdHead <= pair.skyPipe.y) {
+                    return true;
+                }
+                if (flappyBirdFoots >= pair.floorPipe.y) {
+                    return true;
+                }
+            }
+
+            return false;
+        },
+        update() {
+            const passed100Frames = frames % 100 === 0;
+            
+            if (passed100Frames) {
+                this.pairs.push({
+                    x: canvas.width,
+                    y: -150 * (Math.random() + 1)
+                })
+            }
+
+            pipes.pairs.forEach(function (pair) {
+                pair.x = pair.x - 2;
+
+                if (pipes.hasColisionWithFlappyBird(pair)) {
+                    console.log('Você perdeu!');
+                    changeScene(Scenes.START);
+                }
+
+                if (pair.x + pipes.width <= 0) {
+                    pipes.pairs.shift(pair);
+                }
+            });
+        }
+    }
+
+    return pipes;
 }
 
 window.addEventListener('click', function () {
